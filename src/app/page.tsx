@@ -11,7 +11,7 @@ export const metadata:Metadata = {
 
 const categories = await prisma.productCategory.findMany({ include: { products: true } });
 
-export default await function Home() {
+export default async function Home() {
   return (<SectionContainer>
     <BreadCrumbs items={[
       {
