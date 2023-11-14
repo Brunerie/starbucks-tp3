@@ -1,55 +1,71 @@
-import {
-  BreadCrumbs,
-  Button,
-  FormattedPrice,
-  ProductCardLayout,
-  ProductGridLayout,
-  ProductRating,
-  ProductImage,
-  SectionContainer,
-} from "tp-kit/components";
+import {BreadCrumbs,Button,FormattedPrice,ProductCardLayout,ProductGridLayout,ProductRating,ProductImage,SectionContainer} from "tp-kit/components";
 import { NextPageProps } from "../../../types";
 import { PRODUCTS_CATEGORY_DATA } from "tp-kit/data";
 import { Metadata } from "next";
-import {
-  ProductAttribute,
-  ProductAttributesTable,
-} from "../../../components/product-attributes-table";
+import {ProductAttribute,ProductAttributesTable,} from "../../../components/product-attributes-table";
 import { AddToCartButton } from "../../../components/add-to-cart-button";
-const product = {
-  ...PRODUCTS_CATEGORY_DATA[0].products[0],
-  category: {
-    ...PRODUCTS_CATEGORY_DATA[0],
-    products: PRODUCTS_CATEGORY_DATA[0].products.slice(1),
-  },
-};
+import prisma from "../../../utils/prisma";
+import {cache} from "react";
+
+export const getProduct = cache(async (slugCat: string, slugProd: string) => {
+  const product = await prisma.product.findUnique({
+    include: {
+      category: {
+        include: {
+          products: {
+            where: {
+              slug: {not: slugCat}
+            }
+          }
+        }
+      }
+    },
+    where: {
+      slug: slugProd
+    }
+  })
+  return product;
+})
 
 type Props = {
   categorySlug: string;
   productSlug: string;
 };
 
-export async function generateMetadata({
-  params,
-  searchParams,
-}: NextPageProps<Props>): Promise<Metadata> {
+export async function generateMetadata({params,searchParams}: NextPageProps<Props>): Promise<Metadata> {
+  const product = await getProduct(params.categorySlug, params.productSlug);
+  if (!product) {
+    const error = new Error("Category not found");
+    (error as any).statusCode = 404;
+    throw error;
+  }
+  console.log(params)
   return {
     title: product.name,
     description:
-      product.desc ??
-      `Succombez pour notre ${product.name} et commandez-le sur notre site !`,
+        product.desc ??
+        `Trouvez votre inspiration avec un vaste choix de boissons Starbucks parmi nos produits ${product.name}`,
   };
 }
 
+
 const productAttributes: ProductAttribute[] = [
-  { label: "Intensité", rating: 3 },
-  { label: "Volupté", rating: 2 },
   { label: "Amertume", rating: 1 },
+  { label: "Volupté", rating: 2 },
+  { label: "Intensité", rating: 3 },
   { label: "Onctuosité", rating: 4 },
   { label: "Instagramabilité", rating: 5 },
 ];
 
 export default async function ProductPage({ params }: NextPageProps<Props>) {
+  const product = await getProduct(params.categorySlug, params.productSlug);
+
+  if (!product) {
+    const error = new Error("Category not found");
+    (error as any).statusCode = 404;
+    throw error;
+  }
+
   return (
     <SectionContainer wrapperClassName="max-w-5xl">
       <BreadCrumbs
