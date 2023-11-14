@@ -27,6 +27,7 @@ model Product {
   price   Float
   category ProductCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   categoryId Int
+  orderLines OrderLine[]
 }
 
 model Order {
